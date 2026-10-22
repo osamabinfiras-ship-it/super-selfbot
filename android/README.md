@@ -1,8 +1,20 @@
 # Android build
 
 The Android version is the same native program as on PC and Switch (`rt/` + the recompiled game in `gen720/`),
-built as `libmain.so` and started by SDL's Java activity. It renders with OpenGL ES 3.0 and needs a 64-bit
-ARM device (arm64-v8a) with Android 7.0 or newer.
+built as `libmain.so` and started by SDL's Java activity. It renders with OpenGL ES 3.0 and needs Android 7.0 or
+newer. The APK contains two builds of the same code: `arm64-v8a` (64-bit phones) and `armeabi-v7a` (32-bit-only
+ARM phones). The 32-bit one is not yet tested on a device.
+
+### 32-bit build (armeabi-v7a)
+
+- Same sources. Audited for pointer-width assumptions: none found in `rt/`, `gen720/` or the vendored libraries
+  (the generated code uses no `long`, `int64_t` or `size_t`; hashes only index lookup tables, so for-in order is
+  unaffected).
+- The one 32-bit difference is the budget: the atlas cache is 256 MB instead of 512 MB (`rt/platform.cpp`,
+  `defaultCacheMB`, selected by `__LP64__`). Not measured yet.
+- To check on a device: `--stats` prints `[mem]` lines; `--monkey` with a fixed seed
+  must give the same logic sequence as the arm64 build and the PC build (libm results can differ between ABIs, so
+  this is the test that matters).
 
 ## Getting the APK without installing anything (GitHub Actions)
 

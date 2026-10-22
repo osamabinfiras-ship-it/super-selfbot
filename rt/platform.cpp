@@ -42,7 +42,14 @@ void platformInitLimits() {
     // phones share RAM with the GPU and the system kills apps that use too much: atlas like the Switch's
     // application mode (the preload needs ~25 pages of 16 MB), smaller upload ring
     g_lim = kBig;
+#if defined(__LP64__)
     g_lim.defaultCacheMB = 512;
+#else
+    // 32-bit build (armeabi-v7a): ~3 GB of address space, and these phones have less RAM. 256 MB of atlas (16 pages);
+    // the preload no longer fits, so some graphics are rasterized on demand. Not measured on a device yet: check the
+    // [mem] line of --stats before changing it.
+    g_lim.defaultCacheMB = 256;
+#endif
     g_lim.pboBytes = 32u << 20;
 #elif defined(FL_SWITCH_MEMORY)
     g_lim = kSmall;

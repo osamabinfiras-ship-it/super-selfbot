@@ -17,7 +17,7 @@ jobs:
   apk:
     # pinned (instead of ubuntu-latest) so a new runner image can't change the toolchain under us
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 150   # two ABIs now: about twice the arm64-only build's 20-30 minutes, plus the SDL build
     steps:
       - uses: actions/checkout@v7
 
