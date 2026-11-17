@@ -289,6 +289,7 @@ static GLuint link(const char* vs, const char* fs) {
 
 // ============================================================ textures and uploads
 static void g_texSmoothSet(GLuint t);
+static GLuint g_copyTex = 0; static int g_copyTW = 0, g_copyTH = 0;   // scratch source for GpuOp::COPY
 static GLuint newTexture(int w, int h) {
     GLuint t; glGenTextures(1, &t); glBindTexture(GL_TEXTURE_2D, t);
     // On Switch, unsized internal format: mesa then picks the same byte order as the data (BGRA) and
@@ -1382,18 +1383,23 @@ static void runGpuOps(Snapshot& s) {
             case GpuOp::COPY: {
                 BmTex& t = bmTarget(op.uid, op.w, op.h);
                 int w = op.x1 - op.x0, h = op.y1 - op.y0;
-                GLuint tmp = newTexture(w, h);
+                // one scratch texture, grown as needed: creating and deleting one per copy cost a driver allocation each time
+                if (w > g_copyTW || h > g_copyTH) {
+                    if (g_copyTex) glDeleteTextures(1, &g_copyTex);
+                    g_copyTW = std::max(w, g_copyTW); g_copyTH = std::max(h, g_copyTH);
+                    g_copyTex = newTexture(g_copyTW, g_copyTH);
+                }
+                GLuint tmp = g_copyTex;
                 texUpload(tmp, 0, 0, w, h, op.px.data(), w);
                 beginTarget(t.fbo, t.w, t.h);
                 bool merge = op.merge;
                 if (!merge) glrec([] { glDisable(GL_BLEND); });
                 setSmooth(tmp, false);
-                Mat id; quad(tmp, id, op.x0, op.y0, op.x1, op.y1, CX());
+                Mat id; quad(tmp, id, op.x0, op.y0, op.x1, op.y1, CX(), 0, 0, (float)w / g_copyTW, (float)h / g_copyTH);
                 bmBoxAdd(op.uid, (float)op.x0, (float)op.y0, (float)op.x1, (float)op.y1);
                 flush();
                 if (!merge) glrec([] { glEnable(GL_BLEND); });
                 submitFrame();
-                glDeleteTextures(1, &tmp);
                 break;
             }
             case GpuOp::DRAW: {
