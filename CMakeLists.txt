@@ -123,7 +123,12 @@ file(GLOB_RECURSE GEN_SRC ${ISAAC_GEN_DIR}/*.cpp)
 add_library(isaacgen STATIC ${GEN_SRC})
 target_include_directories(isaacgen PRIVATE rt)
 # the generated code is huge: -O1 keeps compile times reasonable
-target_compile_options(isaacgen PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-O1 -fno-strict-aliasing -w>)
+if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
+  # 32-bit ARM build: -O2 for the generated game logic (the per-tick cost is the frame budget on these devices)
+  target_compile_options(isaacgen PRIVATE -O2 -fno-strict-aliasing -w)
+else()
+  target_compile_options(isaacgen PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-O1 -fno-strict-aliasing -w>)
+endif()
 
 set(RT_SRC rt/core.cpp rt/display.cpp rt/builtins.cpp rt/swfload.cpp rt/raster.cpp rt/render.cpp rt/snapshot.cpp rt/patches.cpp rt/platform.cpp rt/audio.cpp rt/main.cpp rt/debug.cpp rt/touch.cpp rt/controls.cpp rt/menuui.cpp)
 if(ANDROID)
